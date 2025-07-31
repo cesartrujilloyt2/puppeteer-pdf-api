@@ -101,12 +101,18 @@ app.post('/generate-pdf', async (req, res) => {
 
 // Health check endpoint para Railway
 app.get('/health', (req, res) => {
-  console.log('🏥 Health check solicitado');
+  console.log('🏥 Health check solicitado desde:', req.ip);
+  console.log('🏥 Headers:', req.headers);
+  console.log('🏥 Memoria actual:', process.memoryUsage());
+  console.log('🏥 Uptime:', process.uptime(), 'segundos');
+  
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
+    port: process.env.PORT || 3000,
+    nodeVersion: process.version
   });
 });
 
@@ -123,9 +129,27 @@ app.get('/', (req, res) => {
 
 // Puerto configurado por Railway
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+console.log('🔧 Puerto desde variable de entorno:', process.env.PORT);
+console.log('🔧 Puerto final que usaremos:', PORT);
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Servidor escuchando en el puerto ${PORT}`);
+  console.log('🔧 Variables de entorno importantes:');
+  console.log('  - NODE_ENV:', process.env.NODE_ENV);
+  console.log('  - PORT:', process.env.PORT);
 });
+
+// Keep-alive para Railway Hobby Plan
+if (process.env.NODE_ENV === 'production') {
+  const keepAlive = setInterval(() => {
+    console.log('🔄 Keep-alive ping');
+  }, 25 * 60 * 1000); // cada 25 minutos
+  
+  // Limpiar interval al cerrar
+  process.on('SIGTERM', () => {
+    clearInterval(keepAlive);
+  });
+}
 
 // ⭐ Manejo de señales para cierre limpio
 process.on('SIGTERM', () => {
