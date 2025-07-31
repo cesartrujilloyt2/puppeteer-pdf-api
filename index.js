@@ -101,7 +101,24 @@ app.post('/generate-pdf', async (req, res) => {
 
 // Health check endpoint para Railway
 app.get('/health', (req, res) => {
-  res.status(200).send({ status: 'OK', timestamp: new Date().toISOString() });
+  console.log('🏥 Health check solicitado');
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
+// Endpoint raíz para verificar que funciona
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Puppeteer PDF API está funcionando',
+    endpoints: {
+      health: '/health',
+      generatePdf: 'POST /generate-pdf'
+    }
+  });
 });
 
 // Puerto configurado por Railway
