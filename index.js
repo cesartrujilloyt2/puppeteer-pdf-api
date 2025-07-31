@@ -2,15 +2,15 @@ const express = require('express');
 const puppeteer = require('puppeteer');
 
 const app = express();
-app.use(express.json());
+
+// Acepta JSON y aumenta el límite si vas a mandar HTML grande
+app.use(express.json({ limit: '10mb' }));
 
 app.post('/generate-pdf', async (req, res) => {
   console.log('📩 POST /generate-pdf recibido');
-
   console.log('🧠 Headers:', req.headers);
-console.log('📦 Raw Body:', req.body);
+  console.log('📦 Body:', req.body);
 
-  
   const { html } = req.body;
 
   if (!html) {
@@ -21,7 +21,7 @@ console.log('📦 Raw Body:', req.body);
   try {
     console.log('🚀 Lanzando navegador Puppeteer...');
     const browser = await puppeteer.launch({
-      headless: 'true',
+      headless: 'new', // ✅ importante para Puppeteer moderno
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
@@ -40,21 +40,33 @@ console.log('📦 Raw Body:', req.body);
     console.log('✅ PDF generado. Cerrando navegador...');
     await browser.close();
 
+    // Verifica que el PDF no esté vacío
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      console.error('❌ PDF vacío o no generado');
+      return res.status(500).send({ error: 'PDF generation failed' });
+    }
+
+    // Enviar el PDF
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename="documento.pdf"'
+      'Content-Disposition': 'attachment; filename="documento.pdf"',
+      'Content-Length': pdfBuffer.length
     });
 
     console.log('📤 Enviando PDF al cliente');
     res.send(pdfBuffer);
+
   } catch (error) {
     console.error('🔥 Error en el proceso de generación de PDF:', error);
-    res.status(500).send({ error: 'Error generando PDF', details: error.message });
+    res.status(500).send({
+      error: 'Error generando PDF',
+      details: error.message
+    });
   }
 });
 
+// Puerto configurado por Railway
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Servidor escuchando en el puerto ${PORT}`);
 });
-
