@@ -80,11 +80,16 @@ app.post('/generate-pdf', async (req, res) => {
       timeout: 30000
     });
     
+    // Esperar a que las fuentes se carguen completamente
+    await page.evaluateHandle('document.fonts.ready');
+    
     console.log('🖨️ Generando PDF...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      timeout: 30000
+      timeout: 30000,
+      preferCSSPageSize: true,
+      displayHeaderFooter: false
     });
     
     console.log('✅ PDF generado. Cerrando navegador...');
