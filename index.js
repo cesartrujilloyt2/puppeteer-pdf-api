@@ -7,6 +7,10 @@ app.use(express.json());
 app.post('/generate-pdf', async (req, res) => {
   console.log('📩 POST /generate-pdf recibido');
 
+  console.log('🧠 Headers:', req.headers);
+console.log('📦 Raw Body:', req.body);
+
+  
   const { html } = req.body;
 
   if (!html) {
