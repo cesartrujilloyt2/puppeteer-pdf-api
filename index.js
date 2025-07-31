@@ -41,12 +41,16 @@ app.get('/', (req, res) => {
 app.post('/generate-pdf', async (req, res) => {
   console.log('📩 POST /generate-pdf recibido');
   
-  const { html } = req.body;
+  const { html, width = 800, height = 'auto' } = req.body;
   
   if (!html) {
     console.error('❌ No se recibió HTML en el cuerpo de la petición');
     return res.status(400).json({ error: 'Missing HTML content' });
   }
+
+  console.log('📐 Configuración del PDF:');
+  console.log(`  - Ancho: ${width}px`);
+  console.log(`  - Alto: ${height === 'auto' ? 'automático (según contenido)' : height + 'px'}`);
 
   let browser;
   try {
@@ -74,6 +78,12 @@ app.post('/generate-pdf', async (req, res) => {
     
     const page = await browser.newPage();
     
+    // Configurar el viewport según las dimensiones solicitadas
+    await page.setViewport({ 
+      width: parseInt(width), 
+      height: height === 'auto' ? 1080 : parseInt(height) // altura inicial si es auto
+    });
+    
     console.log('📄 Cargando contenido HTML');
     await page.setContent(html, { 
       waitUntil: 'networkidle0',
@@ -84,13 +94,50 @@ app.post('/generate-pdf', async (req, res) => {
     await page.evaluateHandle('document.fonts.ready');
     
     console.log('🖨️ Generando PDF...');
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      timeout: 30000,
-      preferCSSPageSize: true,
-      displayHeaderFooter: false
-    });
+    
+    let pdfOptions;
+    
+    if (height === 'auto') {
+      // Obtener las dimensiones del contenido completo
+      const bodyHandle = await page.$('body');
+      const { width: contentWidth, height: contentHeight } = await bodyHandle.boundingBox();
+      await bodyHandle.dispose();
+      
+      console.log(`📏 Dimensiones del contenido: ${contentWidth}px x ${contentHeight}px`);
+      
+      pdfOptions = {
+        width: `${width}px`,
+        height: `${contentHeight}px`,
+        printBackground: true,
+        timeout: 30000,
+        preferCSSPageSize: false,
+        displayHeaderFooter: false,
+        margin: {
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0
+        }
+      };
+    } else {
+      // Usar dimensiones fijas
+      pdfOptions = {
+        width: `${width}px`,
+        height: `${height}px`,
+        printBackground: true,
+        timeout: 30000,
+        preferCSSPageSize: false,
+        displayHeaderFooter: false,
+        margin: {
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0
+        }
+      };
+    }
+    
+    const pdfBuffer = await page.pdf(pdfOptions);
     
     console.log('✅ PDF generado. Cerrando navegador...');
     await browser.close();
