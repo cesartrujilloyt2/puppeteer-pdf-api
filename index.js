@@ -1,15 +1,12 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
+const bodyParser = require('body-parser');
+
 const app = express();
+app.use(bodyParser.text({ type: 'text/html' }));
 
-app.use(express.json({ limit: '10mb' }));
-
-app.post('/generate-pdf', async (req, res) => {
-  const { html } = req.body;
-
-  if (!html) {
-    return res.status(400).send('Falta HTML');
-  }
+app.post('/generar-pdf', async (req, res) => {
+  const html = req.body;
 
   try {
     const browser = await puppeteer.launch({
@@ -32,20 +29,18 @@ app.post('/generate-pdf', async (req, res) => {
     });
 
     await browser.close();
-
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': 'inline; filename=documento.pdf'
+      'Content-Disposition': 'inline; filename="documento.pdf"',
     });
 
     res.send(pdfBuffer);
-  } catch (err) {
-    console.error('Error generando PDF:', err);
-    res.status(500).send('Error interno');
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    res.status(500).send('Error interno al generar el PDF');
   }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Servidor corriendo en puerto ${port}`);
+app.listen(3000, () => {
+  console.log('Servidor escuchando en http://localhost:3000');
 });
