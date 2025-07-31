@@ -21,7 +21,7 @@ console.log('📦 Raw Body:', req.body);
   try {
     console.log('🚀 Lanzando navegador Puppeteer...');
     const browser = await puppeteer.launch({
-      headless: 'new',
+      headless: 'true',
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
