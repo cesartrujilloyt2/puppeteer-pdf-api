@@ -1,5 +1,6 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 const app = express();
 
 // Acepta JSON y aumenta el límite si vas a mandar HTML grande
@@ -21,26 +22,22 @@ app.post('/generate-pdf', async (req, res) => {
   try {
     console.log('🚀 Lanzando navegador Puppeteer...');
     
-    // ✅ Configuración completa para Railway
+    // ✅ Configuración optimizada para Railway con Chromium ligero
     browser = await puppeteer.launch({
-      headless: 'new',
       args: [
+        ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // ⭐ CRÍTICO: evita problemas de memoria compartida
+        '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--no-first-run',
+        '--single-process',
         '--no-zygote',
-        '--single-process', // ⭐ CRÍTICO: usa un solo proceso
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
+        '--disable-web-security'
       ],
-      // ⭐ IMPORTANTE: configuración de memoria
-      defaultViewport: null,
-      timeout: 30000 // 30 segundos timeout
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      timeout: 30000
     });
     
     console.log('✅ Navegador lanzado');
